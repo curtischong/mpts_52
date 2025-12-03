@@ -1,50 +1,16 @@
 # %%
-import pandas as pd
+from matbench_genmetrics.mp_time_split.splitter import MPTimeSplit
 
 # %%
-# Try to load the mp_time_split dataset
+# Load the mp_time_split dataset
 # The dataset is provided by matbench-genmetrics library
-# Try multiple possible locations
-urls_to_try = [
-    "https://raw.githubusercontent.com/sparks-baird/matbench-genmetrics/main/data/mp_time_split.csv",
-    "https://raw.githubusercontent.com/sparks-baird/matbench-genmetrics/main/matbench_genmetrics/data/mp_time_split.csv",
-]
-
-df = None
-for url in urls_to_try:
-    try:
-        print(f"Trying to download from: {url}")
-        df = pd.read_csv(url)
-        print(f"Dataset downloaded successfully! Shape: {df.shape}")
-        break
-    except Exception as e:
-        print(f"Failed: {e}")
-        continue
-
+# It downloads a pre-processed snapshot from figshare
+print("Loading mp_time_split dataset...")
+mpts = MPTimeSplit()
+df = mpts.load(dummy=False, force_download=False)
 if df is None:
-    # If direct download fails, try using the library's API
-    try:
-        from matbench_genmetrics.mp_time_split import get_mp_time_split_df
-
-        df = get_mp_time_split_df()
-        print(f"Dataset loaded via library API! Shape: {df.shape}")
-    except ImportError:
-        try:
-            import matbench_genmetrics
-
-            # Try to access dataset through pystow
-            import pystow
-
-            # The dataset might be cached by pystow
-            df_path = pystow.join("matbench_genmetrics", "data", "mp_time_split.csv")
-            if df_path.exists():
-                df = pd.read_csv(df_path)
-                print(f"Dataset loaded from cache! Shape: {df.shape}")
-            else:
-                raise FileNotFoundError("Dataset not found in cache")
-        except Exception as e:
-            print(f"All methods failed. Error: {e}")
-            raise
+    raise RuntimeError("Failed to load dataset")
+print(f"Dataset loaded successfully! Shape: {df.shape}")
 
 # %%
 # Display basic information about the dataset
@@ -72,5 +38,24 @@ if len(df) > 1000:
 else:
     print(f"\nFull dataset ({len(df)} rows):")
     print(df)
+
+# %%
+# Save 10 random structures as .cif files
+import random
+from pathlib import Path
+
+output_dir = Path("structures")
+output_dir.mkdir(exist_ok=True)
+
+random_indices = random.sample(range(len(df)), min(10, len(df)))
+
+for i, idx in enumerate(random_indices):
+    structure = df.iloc[idx].structure
+    material_id = df.iloc[idx].material_id
+    filename = output_dir / f"{material_id}.cif"
+    structure.to(filename=str(filename), fmt="cif")
+    print(f"Saved structure {i + 1}/10: {material_id} -> {filename}")
+
+print(f"\nAll structures saved to {output_dir}/")
 
 # %%
