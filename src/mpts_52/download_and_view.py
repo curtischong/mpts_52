@@ -40,21 +40,33 @@ else:
     print(df)
 
 # %%
-# Save 10 random structures as .cif files
-import random
+# Save the largest structures as .cif files
 from pathlib import Path
 
 output_dir = Path("structures")
 output_dir.mkdir(exist_ok=True)
 
-random_indices = random.sample(range(len(df)), min(10, len(df)))
-
-for i, idx in enumerate(random_indices):
+print("Calculating structure sizes...")
+structure_sizes = []
+for idx in range(len(df)):
     structure = df.iloc[idx].structure
+    num_atoms = len(structure)
     material_id = df.iloc[idx].material_id
+    structure_sizes.append((idx, num_atoms, material_id))
+
+structure_sizes.sort(key=lambda x: x[1], reverse=True)
+
+num_to_save = min(10, len(df))
+largest_indices = structure_sizes[:num_to_save]
+
+print(f"\nSaving {num_to_save} largest structures:")
+for i, (idx, num_atoms, material_id) in enumerate(largest_indices):
+    structure = df.iloc[idx].structure
     filename = output_dir / f"{material_id}.cif"
     structure.to(filename=str(filename), fmt="cif")
-    print(f"Saved structure {i + 1}/10: {material_id} -> {filename}")
+    print(
+        f"Saved structure {i + 1}/{num_to_save}: {material_id} ({num_atoms} atoms) -> {filename}"
+    )
 
 print(f"\nAll structures saved to {output_dir}/")
 
